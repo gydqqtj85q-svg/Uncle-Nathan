@@ -93,7 +93,7 @@ io.on("connection", socket => {
   socket.on("start_game", (_, cb) => {
     const r = getRoom(socket.data.room);
     if (!r || r.hostId!==socket.id) return cb?.({ok:false,error:"HOST_ONLY"});
-    if (r.players.length < 3) return cb?.({ok:false,error:"NEED_PLAYERS"});
+    if (r.players.length < 2) return cb?.({ok:false,error:"NEED_PLAYERS"});
     if (r.players.some(p=>!p.character)) return cb?.({ok:false,error:"WAITING_SUBMISSIONS"});
     r.started = true;
     r.turnId = r.players[Math.floor(Math.random()*r.players.length)].id;
