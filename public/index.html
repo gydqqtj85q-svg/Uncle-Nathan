@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f5f7">
-<title>Who Picked It?</title>
+<title>Uncle Nathan</title>
 <link rel="manifest" href="/manifest.webmanifest">
 <style>
 :root{--bg:#f5f5f7;--card:#fff;--text:#111;--muted:#666;--line:#d8d8dc;--good:#067647;--bad:#b42318}
@@ -25,7 +25,7 @@ button{border:0;background:#111;color:white;font-weight:800}button.secondary{bac
 </head>
 <body><main>
 <div class="lang"><button onclick="setLang('en')">EN</button><button onclick="setLang('he')">עברית</button></div>
-<h1 id="title">Who Picked It?</h1>
+<h1 id="title">Uncle Nathan</h1>
 <div class="sub" id="tagline">The board + moderator. The memory stays human.</div>
 
 <section id="home">
@@ -99,7 +99,7 @@ const $ = id => document.getElementById(id);
 
 const T = {
  en:{
-  title:"Who Picked It?",tagline:"The board + moderator. The memory stays human.",
+  title:"Uncle Nathan",tagline:"The board + moderator. The memory stays human.",
   yourName:"Your name",createGame:"Create Game",joinGame:"Join Game",roomCode:"Room code",join:"Join",
   scanToJoin:"Scan to join",players:"Players",secretCharacter:"Your secret character",submit:"Submit",
   submitted:"Submitted ✓",startGame:"Start Game",currentTurn:"Current turn",playersRemaining:"Players remaining",
@@ -107,7 +107,7 @@ const T = {
   watchAndRemember:"Watch. Listen. Remember.",winner:"Winner"
  },
  he:{
-  title:"מי בחר את זה?",tagline:"הלוח + המנחה. הזיכרון נשאר אצלכם.",
+  title:"הדוד נתן",tagline:"הלוח + המנחה. הזיכרון נשאר אצלכם.",
   yourName:"השם שלך",createGame:"צור משחק",joinGame:"הצטרף למשחק",roomCode:"קוד חדר",join:"הצטרף",
   scanToJoin:"סרקו כדי להצטרף",players:"שחקנים",secretCharacter:"הדמות הסודית שלך",submit:"שלח",
   submitted:"נשלח ✓",startGame:"התחל משחק",currentTurn:"תור נוכחי",playersRemaining:"שחקנים שנותרו",
@@ -136,7 +136,7 @@ $("create").onclick=()=>{
   const name=$("name").value.trim(); if(!name) return err(currentLang==="he"?"הכניסו שם":"Enter your name");
   socket.emit("create_room",{name},res=>{
     if(!res.ok) return;
-    me=socket.id; isHost=true; show("lobby");
+    me=socket.id; isHost=true; err(""); show("lobby");
     $("hostShare").classList.remove("hidden"); $("qr").src=res.qr; $("code").textContent=res.code;
     history.replaceState({}, "", "/?room="+res.code);
   });
@@ -146,25 +146,40 @@ $("join").onclick=()=>{
   if(!name||!code) return err(currentLang==="he"?"נדרש שם וקוד":"Name and code required");
   socket.emit("join_room",{code,name},res=>{
     if(!res.ok) return err(res.error);
-    me=socket.id; show("lobby"); history.replaceState({}, "", "/?room="+res.code);
+    me=socket.id; err(""); show("lobby"); history.replaceState({}, "", "/?room="+res.code);
   });
 };
 $("submitCharacter").onclick=()=>{
   const character=$("character").value.trim();
   socket.emit("submit_character",{character},res=>{
-    if(res.ok) $("submittedMsg").textContent=T[currentLang].submitted;
+    if(res.ok){
+      $("character").value="";
+      $("character").classList.add("hidden");
+      $("submitCharacter").classList.add("hidden");
+      $("submittedMsg").textContent=T[currentLang].submitted;
+      err("");
+    }
   });
 };
 $("startGame").onclick=()=>socket.emit("start_game",{},res=>{ if(!res.ok) err(res.error); });
 
 socket.on("room_state", s=>{
-  state=s; if(!me) me=socket.id;
+  state=s; err(""); if(!me) me=socket.id;
   const self=s.players.find(p=>p.id===me); if(!self) return;
   isHost=s.hostId===me;
   if(!s.started){
     show("lobby");
     $("lobbyPlayers").innerHTML=s.players.map(p=>`<span class="playerchip">${escapeHtml(p.name)} ${p.submitted?"✓":""}</span>`).join("");
     $("startGame").classList.toggle("hidden",!isHost);
+    if(self.submitted){
+      $("character").value="";
+      $("character").classList.add("hidden");
+      $("submitCharacter").classList.add("hidden");
+      $("submittedMsg").textContent=T[currentLang].submitted;
+    } else {
+      $("character").classList.remove("hidden");
+      $("submitCharacter").classList.remove("hidden");
+    }
   } else {
     show("game");
     const alive=s.players.filter(p=>p.alive), turn=s.players.find(p=>p.id===s.turnId);
