@@ -1,40 +1,18 @@
-# Who Picked It? — Family Version
+# Uncle Nathan 2.0 — Pilot Build
 
-A face-to-face social game. The website replaces only the board and moderator.
+Private family social-deduction game.
 
-## What it does
-- One player creates a room.
-- A large QR code + 4-character code appear.
-- Everyone else joins from their phone.
-- Each player enters a name and secretly submits a character.
-- Duplicate characters are allowed.
-- The board shows remaining players and remaining characters.
-- On a wrong guess, the turn passes to the chosen player.
-- On a correct guess, that player is eliminated and the successful guesser keeps the turn.
-- No visible history of previous guesses.
-- Hebrew + English, including RTL.
-- Large phone-friendly type.
-- No accounts.
+Pilot fixes:
+- persistent player identity across reloads and tabs in the same browser
+- existing players can rejoin after the game starts
+- no duplicate seats from reconnecting
+- secret character disappears after submission
+- two-player testing allowed
+- correct guess keeps the turn
+- wrong guess passes the turn to the accused player
+- eliminated players cannot act
+- automatic game end when one player remains
+- winner announced to everyone
+- host can start a New Game with the same room/player group
 
-## Run locally
-Requires Node.js 18+.
-
-```bash
-npm install
-npm start
-```
-
-Then open http://localhost:3000
-
-## Deploy
-This is a normal Node web app and can be deployed to Render, Railway, Fly.io, or any Node host.
-The start command is:
-
-```bash
-npm start
-```
-
-The host must expose the `PORT` environment variable (the app already supports it).
-
-### Important
-This first family build keeps active rooms in server memory. If the host restarts, the room disappears. For a family game session this is usually fine.
+Note: room state is still stored in server memory. A Render process restart will erase active rooms.
