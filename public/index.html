@@ -19,7 +19,7 @@ button{border:0;background:#111;color:white;font-weight:800}button.secondary{bac
 .center{text-align:center}.muted{color:var(--muted)}.hidden{display:none!important}.qr{width:min(80vw,420px);display:block;margin:10px auto;border-radius:18px}
 .roomcode{font-size:64px;font-weight:900;letter-spacing:8px;text-align:center}.result{font-size:64px;font-weight:950;text-align:center}.correct{color:var(--good)}.wrong{color:var(--bad)}
 .pair{font-size:42px;font-weight:900;text-align:center;line-height:1.25}.lang{display:flex;gap:8px;justify-content:flex-end}.lang button{width:auto;padding:10px 14px;font-size:18px;background:#ececf0;color:#111}
-.status{font-size:22px}.tiny{font-size:16px;color:var(--muted);text-align:center;margin-top:16px}
+.status{font-size:22px}.tiny{font-size:16px;color:var(--muted);text-align:center;margin-top:16px}.trophy{font-size:72px;text-align:center}
 @media(max-width:520px){h1{font-size:42px}.big{font-size:46px}.roomcode{font-size:54px}.chip,.playerchip{font-size:22px}.pair{font-size:36px}}
 </style>
 </head>
@@ -47,16 +47,16 @@ button{border:0;background:#111;color:white;font-weight:800}button.secondary{bac
 <section id="lobby" class="hidden">
   <div id="hostShare" class="card hidden">
     <div class="label center" data-t="scanToJoin">Scan to join</div>
-    <img id="qr" class="qr">
+    <img id="qr" class="qr" alt="Room QR code">
     <div id="code" class="roomcode"></div>
   </div>
   <div class="card">
     <div class="label" data-t="players">Players</div>
     <div id="lobbyPlayers" class="chips"></div>
   </div>
-  <div class="card">
+  <div class="card" id="choiceCard">
     <div class="label" data-t="secretCharacter">Your secret character</div>
-    <input id="character" maxlength="50" autocomplete="off" placeholder="">
+    <input id="character" maxlength="50" autocomplete="off">
     <button id="submitCharacter" style="margin-top:10px" data-t="submit">Submit</button>
     <div id="submittedMsg" class="status center muted" style="margin-top:12px"></div>
   </div>
@@ -87,34 +87,34 @@ button{border:0;background:#111;color:white;font-weight:800}button.secondary{bac
     <button id="guessBtn" style="margin-top:10px" data-t="checkGuess">Check Guess</button>
   </div>
   <div id="waitTurn" class="card center status muted" data-t="watchAndRemember">Watch. Listen. Remember.</div>
-  <div id="winner" class="card hidden"><div class="label center" data-t="winner">Winner</div><div id="winnerName" class="big"></div></div>
+  <div id="winner" class="card hidden">
+    <div class="trophy">🏆</div>
+    <div class="label center" data-t="winner">Winner</div>
+    <div id="winnerName" class="big"></div>
+    <button id="newGame" class="hidden" style="margin-top:18px" data-t="newGame">New Game</button>
+  </div>
 </section>
 
 <div id="error" class="tiny"></div>
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
-let me = null, state = null, isHost = false, currentLang = localStorage.getItem("wpi_lang") || "en";
 const $ = id => document.getElementById(id);
 
-const T = {
- en:{
-  title:"Uncle Nathan",tagline:"The board + moderator. The memory stays human.",
-  yourName:"Your name",createGame:"Create Game",joinGame:"Join Game",roomCode:"Room code",join:"Join",
-  scanToJoin:"Scan to join",players:"Players",secretCharacter:"Your secret character",submit:"Submit",
-  submitted:"Submitted ✓",startGame:"Start Game",currentTurn:"Current turn",playersRemaining:"Players remaining",
-  charactersRemaining:"Characters remaining",yourGuess:"Your guess",checkGuess:"Check Guess",
-  watchAndRemember:"Watch. Listen. Remember.",winner:"Winner"
- },
- he:{
-  title:"הדוד נתן",tagline:"הלוח + המנחה. הזיכרון נשאר אצלכם.",
-  yourName:"השם שלך",createGame:"צור משחק",joinGame:"הצטרף למשחק",roomCode:"קוד חדר",join:"הצטרף",
-  scanToJoin:"סרקו כדי להצטרף",players:"שחקנים",secretCharacter:"הדמות הסודית שלך",submit:"שלח",
-  submitted:"נשלח ✓",startGame:"התחל משחק",currentTurn:"תור נוכחי",playersRemaining:"שחקנים שנותרו",
-  charactersRemaining:"דמויות שנותרו",yourGuess:"הניחוש שלך",checkGuess:"בדוק ניחוש",
-  watchAndRemember:"להסתכל. להקשיב. לזכור.",winner:"המנצח/ת"
- }
+const TOKEN_KEY="uncleNathan_playerToken";
+const SESSION_KEY="uncleNathan_session";
+let playerToken=localStorage.getItem(TOKEN_KEY);
+if(!playerToken){
+  playerToken=(crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)+Date.now().toString(36));
+  localStorage.setItem(TOKEN_KEY,playerToken);
+}
+let me=null, state=null, isHost=false, currentLang=localStorage.getItem("wpi_lang")||"en";
+
+const T={
+ en:{title:"Uncle Nathan",tagline:"The board + moderator. The memory stays human.",yourName:"Your name",createGame:"Create Game",joinGame:"Join Game",roomCode:"Room code",join:"Join",scanToJoin:"Scan to join",players:"Players",secretCharacter:"Your secret character",submit:"Submit",submitted:"Submitted ✓",startGame:"Start Game",currentTurn:"Current turn",playersRemaining:"Players remaining",charactersRemaining:"Characters remaining",yourGuess:"Your guess",checkGuess:"Check Guess",watchAndRemember:"Watch. Listen. Remember.",winner:"Winner",newGame:"New Game"},
+ he:{title:"הדוד נתן",tagline:"הלוח + המנחה. הזיכרון נשאר אצלכם.",yourName:"השם שלך",createGame:"צור משחק",joinGame:"הצטרף למשחק",roomCode:"קוד חדר",join:"הצטרף",scanToJoin:"סרקו כדי להצטרף",players:"שחקנים",secretCharacter:"הדמות הסודית שלך",submit:"שלח",submitted:"נשלח ✓",startGame:"התחל משחק",currentTurn:"תור נוכחי",playersRemaining:"שחקנים שנותרו",charactersRemaining:"דמויות שנותרו",yourGuess:"הניחוש שלך",checkGuess:"בדוק ניחוש",watchAndRemember:"להסתכל. להקשיב. לזכור.",winner:"המנצח/ת",newGame:"משחק חדש"}
 };
+
 function setLang(lang){
   currentLang=lang; localStorage.setItem("wpi_lang",lang);
   document.documentElement.lang=lang; document.documentElement.dir=lang==="he"?"rtl":"ltr";
@@ -128,93 +128,139 @@ function show(section){
   ["home","lobby","game"].forEach(id=>$(id).classList.add("hidden"));
   $(section).classList.remove("hidden");
 }
-function roomFromUrl(){ return new URLSearchParams(location.search).get("room"); }
-const preset = roomFromUrl(); if(preset){ $("joinBox").classList.remove("hidden"); $("roomInput").value=preset.toUpperCase(); }
+function saveSession(room,name){
+  localStorage.setItem(SESSION_KEY,JSON.stringify({room,name,token:playerToken,playerId:me}));
+}
+function savedSession(){
+  try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null")}catch{return null}
+}
+function roomFromUrl(){return new URLSearchParams(location.search).get("room")}
+function enterRoom(res,name){
+  err("");
+  if(res.token){playerToken=res.token;localStorage.setItem(TOKEN_KEY,playerToken)}
+  me=res.playerId;
+  saveSession(res.code,res.name||name||"");
+  history.replaceState({}, "", "/?room="+res.code);
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function escapeAttr(s){return escapeHtml(s)}
+
+const preset=roomFromUrl();
+if(preset){$("joinBox").classList.remove("hidden");$("roomInput").value=preset.toUpperCase()}
 
 $("joinShow").onclick=()=> $("joinBox").classList.toggle("hidden");
+
 $("create").onclick=()=>{
-  const name=$("name").value.trim(); if(!name) return err(currentLang==="he"?"הכניסו שם":"Enter your name");
-  socket.emit("create_room",{name},res=>{
-    if(!res.ok) return;
-    me=socket.id; isHost=true; err(""); show("lobby");
+  const name=$("name").value.trim();
+  if(!name) return err(currentLang==="he"?"הכניסו שם":"Enter your name");
+  socket.emit("create_room",{name,playerToken},res=>{
+    if(!res.ok) return err(res.error);
+    isHost=true; enterRoom(res,name); show("lobby");
     $("hostShare").classList.remove("hidden"); $("qr").src=res.qr; $("code").textContent=res.code;
-    history.replaceState({}, "", "/?room="+res.code);
   });
 };
+
 $("join").onclick=()=>{
   const name=$("name").value.trim(), code=$("roomInput").value.trim().toUpperCase();
-  if(!name||!code) return err(currentLang==="he"?"נדרש שם וקוד":"Name and code required");
-  socket.emit("join_room",{code,name},res=>{
+  if(!code) return err(currentLang==="he"?"נדרש קוד":"Room code required");
+  socket.emit("join_room",{code,name,playerToken},res=>{
     if(!res.ok) return err(res.error);
-    me=socket.id; err(""); show("lobby"); history.replaceState({}, "", "/?room="+res.code);
+    enterRoom(res,name); show("lobby");
   });
 };
+
 $("submitCharacter").onclick=()=>{
   const character=$("character").value.trim();
   socket.emit("submit_character",{character},res=>{
-    if(res.ok){
-      $("character").value="";
-      $("character").classList.add("hidden");
-      $("submitCharacter").classList.add("hidden");
-      $("submittedMsg").textContent=T[currentLang].submitted;
-      err("");
-    }
+    if(!res.ok) return err(res.error);
+    $("character").value="";
+    $("character").classList.add("hidden");
+    $("submitCharacter").classList.add("hidden");
+    $("submittedMsg").textContent=T[currentLang].submitted;
+    err("");
   });
 };
-$("startGame").onclick=()=>socket.emit("start_game",{},res=>{ if(!res.ok) err(res.error); });
 
-socket.on("room_state", s=>{
-  state=s; err(""); if(!me) me=socket.id;
-  const self=s.players.find(p=>p.id===me); if(!self) return;
+$("startGame").onclick=()=>socket.emit("start_game",{},res=>{if(!res.ok)err(res.error)});
+$("guessBtn").onclick=()=>socket.emit("guess",{targetId:$("target").value,character:$("guessCharacter").value},res=>{if(!res.ok)err(res.error)});
+$("newGame").onclick=()=>socket.emit("new_game",{},res=>{if(!res.ok)err(res.error)});
+
+socket.on("room_state",s=>{
+  state=s; err("");
+  const self=s.players.find(p=>p.id===me);
+  if(!self) return;
   isHost=s.hostId===me;
+
   if(!s.started){
     show("lobby");
+    $("winner").classList.add("hidden");
     $("lobbyPlayers").innerHTML=s.players.map(p=>`<span class="playerchip">${escapeHtml(p.name)} ${p.submitted?"✓":""}</span>`).join("");
     $("startGame").classList.toggle("hidden",!isHost);
+
     if(self.submitted){
       $("character").value="";
       $("character").classList.add("hidden");
       $("submitCharacter").classList.add("hidden");
       $("submittedMsg").textContent=T[currentLang].submitted;
-    } else {
+    }else{
       $("character").classList.remove("hidden");
       $("submitCharacter").classList.remove("hidden");
+      $("submittedMsg").textContent="";
     }
-  } else {
-    show("game");
-    const alive=s.players.filter(p=>p.alive), turn=s.players.find(p=>p.id===s.turnId);
-    $("turnName").textContent=turn?turn.name:"";
-    $("gamePlayers").innerHTML=alive.map(p=>`<span class="playerchip">${escapeHtml(p.name)}</span>`).join("");
-    $("gameCharacters").innerHTML=s.remainingCharacters
-      .sort((a,b)=>a.name.localeCompare(b.name))
-      .map(c=>`<span class="chip">${escapeHtml(c.name)}${c.count>1?" ×"+c.count:""}</span>`).join("");
-    const myTurn=s.turnId===me && self.alive && !s.winnerId;
-    $("guessCard").classList.toggle("hidden",!myTurn);
-    $("waitTurn").classList.toggle("hidden",myTurn || !!s.winnerId);
-    if(myTurn){
-      $("target").innerHTML=alive.filter(p=>p.id!==me).map(p=>`<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("");
-      $("guessCharacter").innerHTML=s.remainingCharacters.sort((a,b)=>a.name.localeCompare(b.name)).map(c=>`<option value="${escapeAttr(c.name)}">${escapeHtml(c.name)}${c.count>1?" ×"+c.count:""}</option>`).join("");
-    }
-    if(s.winnerId){
-      $("winner").classList.remove("hidden");
-      const w=s.players.find(p=>p.id===s.winnerId); $("winnerName").textContent=w?w.name:"";
-      $("guessCard").classList.add("hidden"); $("waitTurn").classList.add("hidden");
-    }
+    return;
+  }
+
+  show("game");
+  const living=s.players.filter(p=>p.alive);
+  const turn=s.players.find(p=>p.id===s.turnId);
+  $("turnName").textContent=turn?turn.name:"";
+  $("gamePlayers").innerHTML=living.map(p=>`<span class="playerchip">${escapeHtml(p.name)}</span>`).join("");
+  $("gameCharacters").innerHTML=[...s.remainingCharacters].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>`<span class="chip">${escapeHtml(c.name)}${c.count>1?" ×"+c.count:""}</span>`).join("");
+
+  if(s.winnerId){
+    $("winner").classList.remove("hidden");
+    const w=s.players.find(p=>p.id===s.winnerId);
+    $("winnerName").textContent=w?w.name:"";
+    $("newGame").classList.toggle("hidden",!isHost);
+    $("guessCard").classList.add("hidden");
+    $("waitTurn").classList.add("hidden");
+    $("turnName").textContent="";
+    return;
+  }else{
+    $("winner").classList.add("hidden");
+  }
+
+  const myTurn=s.turnId===me && self.alive;
+  $("guessCard").classList.toggle("hidden",!myTurn);
+  $("waitTurn").classList.toggle("hidden",myTurn);
+
+  if(myTurn){
+    $("target").innerHTML=living.filter(p=>p.id!==me).map(p=>`<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("");
+    $("guessCharacter").innerHTML=[...s.remainingCharacters].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>`<option value="${escapeAttr(c.name)}">${escapeHtml(c.name)}${c.count>1?" ×"+c.count:""}</option>`).join("");
   }
 });
-socket.on("guess_result", r=>{
+
+socket.on("guess_result",r=>{
   $("resultCard").classList.remove("hidden");
   $("resultPair").textContent=`${r.guesserName} → ${r.targetName}\n${r.character}`;
   $("resultPair").style.whiteSpace="pre-line";
   $("resultWord").textContent=r.result==="correct"?(currentLang==="he"?"נכון":"CORRECT"):(currentLang==="he"?"לא נכון":"WRONG");
   $("resultWord").className="result "+(r.result==="correct"?"correct":"wrong");
-  setTimeout(()=>{$("resultCard").classList.add("hidden");},1800);
+  setTimeout(()=>$("resultCard").classList.add("hidden"),1800);
 });
-$("guessBtn").onclick=()=>{
-  socket.emit("guess",{targetId:$("target").value,character:$("guessCharacter").value},res=>{if(!res.ok)err(res.error)});
-};
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function escapeAttr(s){return escapeHtml(s)}
+
+// Automatic re-entry after reload, phone lock, or another tab in the same browser.
+socket.on("connect",()=>{
+  const s=savedSession();
+  const urlRoom=(roomFromUrl()||"").toUpperCase();
+  if(!s || !s.room) return;
+  if(urlRoom && urlRoom!==String(s.room).toUpperCase()) return;
+  socket.emit("join_room",{code:s.room,name:s.name,playerToken},res=>{
+    if(!res.ok) return;
+    enterRoom(res,s.name);
+    if(res.rejoined) show("lobby");
+  });
+});
 </script>
 </body>
 </html>

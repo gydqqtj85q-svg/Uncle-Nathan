@@ -1,9 +1,8 @@
 {
   "name": "Uncle Nathan",
-  "short_name": "UncleNathan",
+  "short_name": "Uncle Nathan",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f5f5f7",
-  "theme_color": "#f5f5f7",
-  "icons": []
+  "theme_color": "#f5f5f7"
 }
